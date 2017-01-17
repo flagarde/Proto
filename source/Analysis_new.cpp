@@ -10,6 +10,9 @@
 #include "TH1F.h"
 #include "TH2D.h"
 #include <string>
+// basic file operations
+#include <iostream>
+#include <fstream>
 
  // define a function with 3 parameters
 Double_t fitf(Double_t *x,Double_t *par) 
@@ -23,11 +26,12 @@ Double_t fitf(Double_t *x,Double_t *par)
 
 const double length_strip=100;/*cm*/
 const double velocity=2.0/3*29.9792;/*cm.ns-1*/
-TH2F* Position=new TH2F("Position","Position",32,0,32,100,0,100);
-TH2F* StripCoincidence=new TH2F("StripCoincidence","StripCoincidence",32,0,32,1,0,50);
+
 std::vector<TH1F*>DiffTimes;
 TH1F* DiffTime=new TH1F("Diff_Time","Diff_Time",400,-20e-9,20e-9);
 TH1F* triggerr=new TH1F("Diff_trigger","Diff_trigger",400,-20,20);
+TH2F* Position=new TH2F("Position","Position",32,0,32,100,0,100);
+TH2F* StripCoincidence=new TH2F("StripCoincidence","StripCoincidence",32,0,32,1,0,50);
 class hit
 {
   public:
@@ -207,6 +211,9 @@ std::vector<int> Selector::myfriend={1,0,3,2,5,4,7,6,9,8,11,10,13,12};
   
 int main(int argc , char *argv[])
 {
+
+  std::ofstream myfile;
+  myfile.open ("Results_efficiency.txt",std::ios_base::app);
   for(unsigned int i=0;i!=31;++i)
   {
     DiffTimes.push_back(new TH1F(("Diff_Time_"+std::to_string(i)).c_str(),("Diff_Time_"+std::to_string(i)).c_str(),400,-20e-9,20e-9));
@@ -236,7 +243,9 @@ int main(int argc , char *argv[])
     delete dataTree;
     std::exit(1);
   }
-  TFile f(("Result"+std::string(argv[1])).c_str(),"recreate");
+  std::size_t found = filename.find_last_of("/\\");
+  std::string namee=filename.substr(found+1);
+  TFile f(("Result_"+namee).c_str(),"recreate");
   Selector selector(dataTree,100.,100.);
   for (unsigned int i = 0; i < dataTree->GetEntries(); i++) 
   {
@@ -267,7 +276,9 @@ int main(int argc , char *argv[])
   f.Close();
   ti.Stop();
   std::cout<<"Efficiency : "<<hit::number1*1.0/trigger::number<<"  "<<hit::number2*1.0/trigger::number<<std::endl;
-  std::cout<<"Efficiency : "<<Selector::number1*1.0/trigger::number<<"  "<<Selector::number2*1.0/trigger::number<<std::endl;
+  std::cout<<"Efficiency both side (%) : "<<Selector::number1*1.0/hit::number1<<"  "<<Selector::number2*1.0/hit::number2<<std::endl;
+  myfile <<namee<<" TDC1: "<<hit::number1*1.0/trigger::number<<" ; "<<Selector::number1*1.0/hit::number1<<"; TDC2: "<<hit::number2*1.0/trigger::number<<"  "<<Selector::number2*1.0/hit::number2<<std::endl;
+  myfile.close();
   std::cout << " Time :" << ti.RealTime() << "  " << ti.CpuTime() << std::endl;
 }
 
